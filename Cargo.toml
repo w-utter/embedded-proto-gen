@@ -1,0 +1,10 @@
+[package]
+name = "embedded-proto-gen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+protobuf = "3.5"
+protobuf-parse = "3.5"
+protoc-bin-vendored = "3.0"
+anyhow = "1.0"
