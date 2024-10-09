@@ -33,10 +33,13 @@ fn populate_top_map(
     for TopInfo { dep_count, kind, forward_declarable, collection_count, ..} in map.values() {
         use protobuf::descriptor::field_descriptor_proto::Type;
         if let DependentMessageKind::Message(desc, cc) = kind {
+            let mut dep_map = HashSet::new();
             for field in desc.fields() {
                 let field_name = get_type_name_from_path(field.proto().type_name());
                 if matches!(field.proto().type_(), Type::TYPE_ENUM | Type::TYPE_MESSAGE) {
-                    dep_count.fetch_add(1, Ordering::SeqCst);
+                    if dep_map.insert(field.proto().type_name().to_owned()) {
+                        dep_count.fetch_add(1, Ordering::SeqCst);
+                    }
                     let TopInfo { used_by, .. } = map.get(field_name).unwrap();
                     used_by.borrow_mut().insert(desc.full_name().to_owned());
 
@@ -303,8 +306,10 @@ pub(crate) fn order_protoc_types(file: &FileDescriptor) -> anyhow::Result<Vec<De
         ord.push(empty_kind);
     }
 
+    //FIXME: if the same nested type is used multiple times within the same message it will false
+    //err as a cyclic type
     if ord.len() != top_degrees.len() {
-        panic!("detected cyclic type");
+        panic!("detected cyclic type, ordered != original ({} != {})", ord.len(), top_degrees.len());
     }
     let _fdm = forward_declarable_messages.into_iter().collect::<Vec<_>>();
 

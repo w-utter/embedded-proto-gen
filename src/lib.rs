@@ -12,6 +12,8 @@ pub use topo_sort::{MessageKind, CollectionDependencies, ProtobufType};
 use protobuf::reflect::RuntimeFieldType;
 
 pub trait ProtobufBindingsWriter {
+    type WriterOptions;
+    fn with_writer_options(&mut self, options: Self::WriterOptions);
     fn writer(&mut self) -> &mut impl std::io::Write;
     fn write_prelude(&mut self) -> std::io::Result<()>;
     fn write_file_header(&mut self, fd: &FileDescriptor) -> std::io::Result<()>;
@@ -38,6 +40,10 @@ impl <T: ProtobufBindingsWriter> ProtobufParser<T, Initalized> {
         parser.protoc();
         parser.protoc_path(&protoc_bin_vendored::protoc_bin_path()?);
         Ok(Self{parser, writer, state: Initalized})
+    }
+
+    pub fn with_writer_options(&mut self, options: T::WriterOptions) {
+        self.writer.with_writer_options(options)
     }
 
     pub fn with_inputs<P: AsRef<std::path::Path>>(&mut self, inputs: &[P]) {
